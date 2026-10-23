@@ -15,6 +15,8 @@ public class Program
 
         builder.Services.AddContext(builder.Configuration);
 
+        builder.Services.AddServices();
+
         var app = builder.Build();
 
         if (app.Environment.IsDevelopment())

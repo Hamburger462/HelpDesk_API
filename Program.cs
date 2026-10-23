@@ -1,5 +1,6 @@
 
 using HelpDesk.Configuration;
+using HelpDesk.Services.Error;
 
 namespace HelpDesk;
 
@@ -21,22 +22,31 @@ public class Program
 
         builder.Services.AddJwtAuth(builder.Configuration);
 
+        builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
+
+        builder.Services.AddClientCors(builder.Configuration);
+
+        builder.Services.AddDefRateLim();
+
         var app = builder.Build();
 
         if (app.Environment.IsDevelopment())
         {
             app.MapOpenApi();
 
-            //app.UseSwaggerUI(options =>
-            //    options.SwaggerEndpoint("/openapi/v1.json", "v1")
-            //);
+            app.UseSwaggerUI(options =>
+                options.SwaggerEndpoint("/openapi/v1.json", "v1")
+            );
         }
+
+        app.UseCors();
 
         app.UseHttpsRedirection();
 
         app.UseAuthentication();
         app.UseAuthorization();
 
+        app.UseRateLimiter();
 
         app.MapControllers();
 

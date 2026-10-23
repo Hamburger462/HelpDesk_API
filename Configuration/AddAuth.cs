@@ -23,7 +23,7 @@ namespace HelpDesk.Configuration
                     ValidIssuer = configuration["Jwt:Issuer"],
                     ValidAudience = configuration["Jwt:Audience"],
                     IssuerSigningKey = new SymmetricSecurityKey(
-                        Encoding.UTF8.GetBytes(configuration["Jwt:Key"]!))
+                        Encoding.UTF8.GetBytes(configuration["Jwt:Key"]!)) // Add a secure jwt token or generate it using any command for the love of God please
                 }
             );
             return services;

@@ -1,6 +1,7 @@
 using AutoMapper;
 using HelpDesk.Data.Dto;
 using HelpDesk.Data.Models;
+using HelpDesk.Features.Auth.Register;
 
 namespace HelpDesk.Mapping
 {
@@ -29,6 +30,8 @@ namespace HelpDesk.Mapping
                 .ForMember(d => d.PassHash, o => o.MapFrom(src => src.Password))
                 .ForMember(d => d.Role, o => o.Ignore())
                 .ForMember(d => d.Tickets, o => o.Ignore());
+
+            CreateMap<RegisterDto, CreateUserDto>();
 
             CreateMap<TicketDto, Ticket>()
                 .ForMember(d => d.Id, o => o.Ignore())

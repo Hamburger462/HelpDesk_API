@@ -17,6 +17,8 @@ public class Program
 
         builder.Services.AddServices();
 
+        builder.Services.AddJwtAuth(builder.Configuration);
+
         var app = builder.Build();
 
         if (app.Environment.IsDevelopment())
@@ -30,7 +32,7 @@ public class Program
 
         app.UseHttpsRedirection();
 
-        // app.UseAuthentication();
+         app.UseAuthentication();
         app.UseAuthorization();
 
 

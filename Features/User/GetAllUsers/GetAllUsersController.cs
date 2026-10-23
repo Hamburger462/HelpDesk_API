@@ -10,7 +10,7 @@ namespace HelpDesk.Features.User.GetAllUsers
         [HttpGet]
         public async Task<ActionResult<List<UserDto>>> GetAllUsers()
         {
-            var users = mediator.Send(new GetAllUsersCommand());
+            var users = await mediator.Send(new GetAllUsersCommand());
             return Ok(users);
         }
     }

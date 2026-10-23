@@ -4,5 +4,6 @@ namespace HelpDesk.Data.Dto
     {
         public Guid Id { get; set; }
         public required string Text { get; set; }
+        public DateTimeOffset CreatedAt { get; set; }
     }
 }

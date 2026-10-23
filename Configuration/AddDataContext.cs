@@ -7,6 +7,7 @@ namespace HelpDesk.Configuration
     {
         public static IServiceCollection AddContext(this IServiceCollection services, IConfiguration configuration)
         {
+            //Console.WriteLine(configuration.GetConnectionString("DefaultConnection"));
             services.AddDbContext<AppDbContext>(options => 
                 options.UseNpgsql(configuration.GetConnectionString("DefaultConnection")) // Add Connection string to the user-secrets
             );

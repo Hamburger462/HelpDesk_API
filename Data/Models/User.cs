@@ -6,7 +6,9 @@ namespace HelpDesk.Data.Models
         public required string FullName { get; set; }
         public required string Email { get; set; }
         public required string PassHash { get; set; }
-        public string Role { get; set; } = "User";
-        public List<Ticket> Tickets { get; set; } = new();
+        public string Role { get; set; } = Roles.User;
+
+        public List<Ticket> CreatedTickets { get; set; } = new();    // tickets this user sent
+        public List<Ticket> AssignedTickets { get; set; } = new();   // tickets this user responds to
     }
 }

@@ -1,6 +1,8 @@
+using FluentValidation;
 
 using HelpDesk.Configuration;
 using HelpDesk.Services.Error;
+using HelpDesk.Validation;
 
 namespace HelpDesk;
 
@@ -28,13 +30,22 @@ public class Program
 
         builder.Services.AddDefRateLim();
 
+        builder.Services.AddSwagDoc();
+
+        builder.Services.AddAuthorization();
+
+        builder.Services.AddValidatorsFromAssemblyContaining<CreateUserDtoValidator>();
+        builder.Services.AddControllers(options => options.Filters.Add<FluentValidationFilter>());
+
         var app = builder.Build();
 
         if (app.Environment.IsDevelopment())
         {
             app.MapOpenApi();
+            app.UseSwagger();
 
-            app.UseSwaggerUI(options =>
+            app.UseSwaggerUI(
+                options =>
                 options.SwaggerEndpoint("/openapi/v1.json", "v1")
             );
         }

@@ -5,7 +5,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace HelpDesk.Features.Ticket.UpdateTicket
 {
-    public enum UpdateTicketStatus { Updated, NotFound, UserNotFound }
+    public enum UpdateTicketStatus { Updated, NotFound }
 
     public record UpdateTicketCommand(Guid Id, TicketDto Dto) : IRequest<UpdateTicketStatus>;
 
@@ -16,12 +16,15 @@ namespace HelpDesk.Features.Ticket.UpdateTicket
             var ticket = await context.Tickets.FirstOrDefaultAsync(t => t.Id == command.Id, cancellationToken);
             if (ticket is null) return UpdateTicketStatus.NotFound;
 
-            if (!await context.Users.AnyAsync(u => u.Id == command.Dto.UserId, cancellationToken))
-                return UpdateTicketStatus.UserNotFound;
+            // Only the title and urgency are edited here. Everything else has its own path:
+            // - status: a dedicated status-change command (it enforces the workflow rules)
+            // - assignees: the assign/unassign endpoints
+            // - messages and attachments: their own endpoints
+            // - sender (CreatedById) and timestamps: never client-controlled
+            // UpdatedAt is refreshed by AppDbContext.SaveChanges.
+            ticket.Title = command.Dto.Title.Trim();
+            ticket.Urgency = command.Dto.Urgency;
 
-            // The only editable field for now is the owner. Add Title/Status/etc. here once they exist.
-            // Messages and attachments are changed through their own endpoints.
-            ticket.UserId = command.Dto.UserId;
             await context.SaveChangesAsync(cancellationToken);
 
             return UpdateTicketStatus.Updated;

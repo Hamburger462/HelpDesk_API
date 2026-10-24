@@ -1,4 +1,5 @@
 using AutoMapper;
+using AutoMapper.QueryableExtensions;
 using HelpDesk.Data;
 using HelpDesk.Data.Dto;
 using HelpDesk.Services.Storage;
@@ -10,7 +11,7 @@ namespace HelpDesk.Features.Attachment.CreateAttachment
 {
     // Returns null when the ticket does not exist.
     // The controller validates size/type and decides ContentType; the handler only stores.
-    public record CreateAttachmentCommand(Guid TicketId, string FileName, string ContentType, long SizeBytes, Stream Content)
+    public record CreateAttachmentCommand(Guid TicketId, Guid UploadedById, string FileName, string ContentType, long SizeBytes, Stream Content)
         : IRequest<AttachmentDto?>;
 
     public class CreateAttachmentHandler(AppDbContext context, IMapper mapper, IFileStorage storage)
@@ -32,6 +33,7 @@ namespace HelpDesk.Features.Attachment.CreateAttachment
             {
                 Id = id,
                 TicketId = command.TicketId,
+                UploadedById = command.UploadedById,
                 FileName = Path.GetFileName(command.FileName),
                 ContentType = command.ContentType,
                 SizeBytes = command.SizeBytes,
@@ -49,7 +51,11 @@ namespace HelpDesk.Features.Attachment.CreateAttachment
                 throw;
             }
 
-            return mapper.Map<AttachmentDto>(attachment);
+            // Reload with the uploader so UploadedByFullName is filled in the response.
+            return await context.Attachments
+                .Where(a => a.Id == id)
+                .ProjectTo<AttachmentDto>(mapper.ConfigurationProvider)
+                .FirstAsync(cancellationToken);
         }
     }
 }

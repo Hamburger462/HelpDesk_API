@@ -1,18 +1,20 @@
-using HelpDesk.Data.Dto;
-using HelpDesk.Data.Models;
-using HelpDesk.Extensions;
-using HelpDesk.Features.Ticket.CreateTicket;
-using HelpDesk.Features.Ticket.DeleteTicket;
-using HelpDesk.Features.Ticket.GetTicketById;
-using HelpDesk.Features.Ticket.UpdateTicket;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
+using HelpDesk.Data.Dto;
+using HelpDesk.Data.Models;
+using HelpDesk.Extensions;
+using HelpDesk.Features.Ticket.GetAllTickets;
+using HelpDesk.Features.Ticket.GetTicketById;
+using HelpDesk.Features.Ticket.CreateTicket;
+using HelpDesk.Features.Ticket.UpdateTicket;
+using HelpDesk.Features.Ticket.DeleteTicket;
+
 namespace HelpDesk.Features.Ticket
 {
     /// <summary>
-    /// Support tickets.
+    /// Support tickets. Requires authentication.
     /// </summary>
     [Route("api/[controller]")]
     [ApiController]
@@ -21,6 +23,28 @@ namespace HelpDesk.Features.Ticket
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public class TicketsController(IMediator mediator) : ControllerBase
     {
+        /// <summary>
+        /// Gets a page of tickets.
+        /// </summary>
+        /// <remarks>
+        /// Regular users only see tickets they sent; operators and admins see all tickets.
+        /// Filters can be combined. Results are newest first.
+        /// Use Unassigned=true for the queue of tickets nobody has picked up yet.
+        /// </remarks>
+        /// <param name="filter">Paging and filter options, sent as query-string parameters.</param>
+        /// <response code="200">A page of ticket summaries.</response>
+        [HttpGet]
+        [ProducesResponseType<PagedResult<TicketSummaryDto>>(StatusCodes.Status200OK)]
+        public async Task<ActionResult<PagedResult<TicketSummaryDto>>> GetAllTickets([FromQuery] TicketFilter filter, CancellationToken cancellationToken)
+        {
+            var userId = User.GetUserId();
+            if (userId is null)
+                return Unauthorized();
+
+            var tickets = await mediator.Send(new GetAllTicketsQuery(filter, userId.Value, User.IsStaff()), cancellationToken);
+            return Ok(tickets);
+        }
+
         /// <summary>
         /// Gets a ticket by id.
         /// </summary>
@@ -76,6 +100,7 @@ namespace HelpDesk.Features.Ticket
         /// <response code="204">The ticket was updated.</response>
         /// <response code="400">The request body is invalid.</response>
         /// <response code="404">No ticket with that id exists.</response>
+        /// <response code="403">Requires the Operator or Admin role.</response>
         [HttpPut("{id:guid}")]
         [Authorize(Roles = Roles.Operator + "," + Roles.Admin)]
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
@@ -101,6 +126,7 @@ namespace HelpDesk.Features.Ticket
         /// <param name="id">The ticket id.</param>
         /// <response code="204">The ticket was deleted.</response>
         /// <response code="404">No ticket with that id exists.</response>
+        /// <response code="403">Requires the Admin role.</response>
         [HttpDelete("{id:guid}")]
         [Authorize(Roles = Roles.Admin)]
         [ProducesResponseType(StatusCodes.Status403Forbidden)]

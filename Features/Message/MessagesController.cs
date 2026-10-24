@@ -1,17 +1,20 @@
-using HelpDesk.Data.Dto;
-using HelpDesk.Data.Models;
-using HelpDesk.Features.Message.CreateMessage;
-using HelpDesk.Features.Message.DeleteMessage;
-using HelpDesk.Features.Message.GetMessageById;
-using HelpDesk.Features.Message.UpdateMessage;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
+using HelpDesk.Data.Dto;
+using HelpDesk.Data.Models;
+using HelpDesk.Extensions;
+using HelpDesk.Features.Message.GetAllMessages;
+using HelpDesk.Features.Message.GetMessageById;
+using HelpDesk.Features.Message.CreateMessage;
+using HelpDesk.Features.Message.UpdateMessage;
+using HelpDesk.Features.Message.DeleteMessage;
+
 namespace HelpDesk.Features.Message
 {
     /// <summary>
-    /// Messages in a ticket's conversation.
+    /// Messages in a ticket's conversation. Requires authentication.
     /// </summary>
     [Route("api/tickets/{ticketId:guid}/messages")]
     [ApiController]
@@ -20,6 +23,29 @@ namespace HelpDesk.Features.Message
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public class MessagesController(IMediator mediator) : ControllerBase
     {
+        /// <summary>
+        /// Gets a page of a ticket's messages.
+        /// </summary>
+        /// <remarks>
+        /// Oldest first, so pages read as a conversation. Regular users can only read messages on tickets they sent.
+        /// </remarks>
+        /// <param name="ticketId">The ticket id.</param>
+        /// <param name="filter">Paging and filter options, sent as query-string parameters.</param>
+        /// <response code="200">A page of messages.</response>
+        /// <response code="404">The ticket does not exist, or the caller may not see it.</response>
+        [HttpGet]
+        [ProducesResponseType<PagedResult<MessageDto>>(StatusCodes.Status200OK)]
+        [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+        public async Task<ActionResult<PagedResult<MessageDto>>> GetAllMessages(Guid ticketId, [FromQuery] MessageFilter filter, CancellationToken cancellationToken)
+        {
+            var userId = User.GetUserId();
+            if (userId is null)
+                return Unauthorized();
+
+            var messages = await mediator.Send(new GetAllMessagesQuery(ticketId, filter, userId.Value, User.IsStaff()), cancellationToken);
+            return messages is null ? NotFound() : Ok(messages);
+        }
+
         /// <summary>
         /// Gets a message by id.
         /// </summary>
@@ -66,6 +92,7 @@ namespace HelpDesk.Features.Message
         /// <response code="204">The message was updated.</response>
         /// <response code="400">The request body is invalid.</response>
         /// <response code="404">No such message exists on that ticket.</response>
+        /// <response code="403">Requires the Operator or Admin role.</response>
         [HttpPut("{id:guid}")]
         [Authorize(Roles = Roles.Operator + "," + Roles.Admin)]
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
@@ -85,6 +112,7 @@ namespace HelpDesk.Features.Message
         /// <param name="id">The message id.</param>
         /// <response code="204">The message was deleted.</response>
         /// <response code="404">No such message exists on that ticket.</response>
+        /// <response code="403">Requires the Admin role.</response>
         [HttpDelete("{id:guid}")]
         [Authorize(Roles = Roles.Admin)]
         [ProducesResponseType(StatusCodes.Status403Forbidden)]

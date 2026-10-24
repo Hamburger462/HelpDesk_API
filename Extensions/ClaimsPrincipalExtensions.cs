@@ -1,4 +1,5 @@
-﻿using System.Security.Claims;
+using System.Security.Claims;
+using HelpDesk.Data.Models;
 
 namespace HelpDesk.Extensions
 {
@@ -12,5 +13,9 @@ namespace HelpDesk.Extensions
 
             return Guid.TryParse(value, out var id) ? id : null;
         }
+
+        // Operators and admins work with everyone's tickets; regular users only with their own.
+        public static bool IsStaff(this ClaimsPrincipal principal) =>
+            principal.IsInRole(Roles.Operator) || principal.IsInRole(Roles.Admin);
     }
 }

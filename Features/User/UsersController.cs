@@ -1,18 +1,19 @@
-﻿using HelpDesk.Data.Dto;
-using HelpDesk.Data.Models;
-using HelpDesk.Features.User.CreateUser;
-using HelpDesk.Features.User.DeleteUser;
-using HelpDesk.Features.User.GetAllUsers;
-using HelpDesk.Features.User.GetUserById;
-using HelpDesk.Features.User.UpdateUser;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
+using HelpDesk.Data.Dto;
+using HelpDesk.Data.Models;
+using HelpDesk.Features.User.GetAllUsers;
+using HelpDesk.Features.User.GetUserById;
+using HelpDesk.Features.User.CreateUser;
+using HelpDesk.Features.User.UpdateUser;
+using HelpDesk.Features.User.DeleteUser;
+
 namespace HelpDesk.Features.User
 {
     /// <summary>
-    /// User accounts.
+    /// User accounts. Admin only.
     /// </summary>
     [Route("api/[controller]")]
     [ApiController]
@@ -23,14 +24,18 @@ namespace HelpDesk.Features.User
     public class UsersController(IMediator mediator) : ControllerBase
     {
         /// <summary>
-        /// Gets all users.
+        /// Gets a page of users.
         /// </summary>
-        /// <response code="200">The list of users.</response>
+        /// <remarks>
+        /// Sorted by full name. Filters can be combined.
+        /// </remarks>
+        /// <param name="filter">Paging and filter options, sent as query-string parameters.</param>
+        /// <response code="200">A page of users.</response>
         [HttpGet]
-        [ProducesResponseType<List<UserDto>>(StatusCodes.Status200OK)]
-        public async Task<ActionResult<List<UserDto>>> GetAllUsers()
+        [ProducesResponseType<PagedResult<UserListItemDto>>(StatusCodes.Status200OK)]
+        public async Task<ActionResult<PagedResult<UserListItemDto>>> GetAllUsers([FromQuery] UserFilter filter, CancellationToken cancellationToken)
         {
-            var users = await mediator.Send(new GetAllUsersCommand());
+            var users = await mediator.Send(new GetAllUsersCommand(filter), cancellationToken);
             return Ok(users);
         }
 
